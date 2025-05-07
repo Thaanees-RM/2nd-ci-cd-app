@@ -1,0 +1,51 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE = 'rafeekthaanees/2nd-ci-cd-app'
+        TAG = 'latest'
+    }
+
+    stages {
+        stage('Clone Repo') {
+            steps {
+                git 'https://github.com/Thaanees-RM/2nd-ci-cd-app.git'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t $IMAGE:$TAG .'
+            }
+        }
+
+        stage('Push to DockerHub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                    sh 'docker push $IMAGE:$TAG'
+                }
+            }
+        }
+
+        stage('Deploy to Test') {
+            steps {
+                sh 'docker stop test || true && docker rm test || true'
+                sh 'docker run -d --name test -p 5000:5000 $IMAGE:$TAG'
+            }
+        }
+
+        stage('Manual Approval for Production') {
+            steps {
+                input message: 'Approve deployment to production?'
+            }
+        }
+
+        stage('Deploy to Production') {
+            steps {
+                echo 'Simulating Production Deployment...'
+                // Add real production deployment commands here if needed
+            }
+        }
+    }
+}
