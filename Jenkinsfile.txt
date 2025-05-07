@@ -1,0 +1,55 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_IMAGE = "rafeekthaanees/2nd-ci-cd-app:${env.BUILD_ID}"
+    }
+
+    stages {
+        stage('Clone Repo') {
+            steps {
+                git branch: 'main', url: 'https://github.com/Thaanees-RM/2nd-ci-cd-app.git'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    dockerImage = docker.build(DOCKER_IMAGE)
+                }
+            }
+        }
+
+        stage('Push to DockerHub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    script {
+                        docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-creds') {
+                            dockerImage.push()
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Test') {
+            steps {
+                echo 'Deploying to test server...'
+                // Add SSH command or script to deploy
+            }
+        }
+
+        stage('Manual Approval for Production') {
+            steps {
+                input message: 'Do you approve deployment to production?'
+            }
+        }
+
+        stage('Deploy to Production') {
+            steps {
+                echo 'Deploying to production server...'
+                // Add your production deployment logic here
+            }
+        }
+    }
+}
